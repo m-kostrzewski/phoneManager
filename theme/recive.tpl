@@ -32,16 +32,16 @@
             </tfoot>
             <tbody>
             {foreach from=$records item=record key=key name=name}
-            {if $record.readed}
+            {if $record->readed}
                  <tr class='text-decoded'>
             {else}
-                 <tr class='text-decoded phoneManagerNoReaded' data-id='{$record.ID}'>
+                 <tr class='text-decoded phoneManagerNoReaded' data-id='{$record->ID}'>
             {/if}
-                    <td align='center'> {$record.ReceivingDateTime}</td>
-                    <td align='center'> {$record.SenderNumber} </td>
+                    <td align='center'> {$record->ReceivingDateTime}</td>
+                    <td align='center'> {$record->SenderNumber} </td>
                     <td colspan='3' align='left' style="width:80%;padding-left:10px; padding-top:5px;padding-bottom:5px;">
-                        <span style='display:block;'> {$record.TextDecoded|truncate:95} </span> 
-                        <span style='display:none;'>  {$record.TextDecoded} </span>  
+                        <span style='display:block;'> {$record->TextDecoded|truncate:95} </span> 
+                        <span style='display:none;'>  {$record->TextDecoded} </span>  
                     </td>
                 </tr>
             {/foreach}

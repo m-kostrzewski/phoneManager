@@ -8,10 +8,14 @@ class phoneManagerCommon extends ModuleCommon {
     }
 
     public static function menu() {
-		return array(_M('Phone Manager') => array('Phone Manager' => 0, __('Phone Manager') => array(
-	    'view'
-			)));
-  }
+
+      if (Base_AclCommon::check_permission('Phone Manager') || Base_AclCommon::i_am_sa() == "1" || Base_AclCommon::i_am_admin() == "1" )
+        return array(_M('Phone Manager') => array(
+            '__icon__'=>'sms.png','__icon_small__'=>'sms.png'
+          ));
+		  else
+        return array();
+    }
   
 
     public static function autoselect_company_or_contact($str, $crits, $format_callback){

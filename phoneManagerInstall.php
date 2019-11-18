@@ -7,6 +7,8 @@ class phoneManagerInstall extends ModuleInstall {
         $ret = true;
         Base_ThemeCommon::install_default_theme($this->get_type());
         Base_LangCommon::install_translations($this->get_type());
+        Base_AclCommon::add_permission(_M('Phone Manager'),array('ACCESS:sms'));
+        Utils_CommonDataCommon::extend_array("Contacts/Access",array("sms" => "Telefon CRM"));
     
         return $ret; 
     }

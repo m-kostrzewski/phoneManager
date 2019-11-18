@@ -18,8 +18,7 @@
                 <th>Data i czas wysłania</th>
                 <th>Nadawca</th>
                 <th>Odbiorca</th>
-                <th colspan='3'></th>
-                <th>Status</th>
+                <th colspan='4'></th>
             </tr>
         </thead>
         <tfoot>
@@ -36,14 +35,13 @@
         <tbody>
             {foreach from=$records item=record key=key name=name}
                 <tr class='text-decoded-sended'>
-                    <td align='center' > {$record.SendingDateTime}</td>
-                    <td align='center'  > {$record.CreatorID} </td>
-                    <td align='center'> {$record.DestinationNumber} </td>
-                    <td align='left' colspan='3'   style="padding-left:10px; padding-top:5px;padding-bottom:5px;">
-                        <span style='display:block;'> {$record.TextDecoded|truncate:95} </span> 
-                        <span style='display:none;'>  {$record.TextDecoded} </span>  
+                    <td align='center' > {$record->SendingDateTime}</td>
+                    <td align='center'  > {$record->CreatorID} </td>
+                    <td align='center'> {$record->DestinationNumber} </td>
+                    <td align='left' colspan='4'   style="padding-left:10px; padding-top:5px;padding-bottom:5px;">
+                        <span style='display:block;'> {$record->TextDecoded|truncate:95} </span> 
+                        <span style='display:none;'>  {$record->TextDecoded} </span>  
                     </td>
-                    <td align='center'> {$record.Status} </td>
                 </tr>
             {/foreach}
         </tbody>
@@ -56,7 +54,7 @@
             <div style='position:absolute;right:5px;top:0px;' id='closeSmsBox' class='phoneManagerButton'> X </div>
             <h3>Wyślij SMS </h3><br>
             {$my_form_open}
-                <b>{$my_form_data.contact.label} <br> (Nr telefonu lub imie i nazwisko)</b>   <br>
+                <b>{$my_form_data.contact.label} <br> (Wyszukaj po: Nr telefonu lub imie i nazwisko)</b>   <br>
                 {$my_form_data.contact.html}    <br>
                 <b>{$my_form_data.message.label}</b>   <Br>
                 {$my_form_data.message.html}    <Br>

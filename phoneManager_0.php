@@ -8,9 +8,17 @@ class phoneManager extends Module {
 
     }
 
+    public function getDataCurl($url){
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_URL,$url);
+        $result=curl_exec($ch);
+        curl_close($ch);
+        return $result;
+    }
+
     public function body(){
-        require 'phone.php';
-        $phone = new Phone();
 
         $change = "";
         if($_REQUEST['change']){
@@ -27,16 +35,7 @@ class phoneManager extends Module {
                 $change = $this->create_href(array("change" =>"recive"));
             }
         }
-        $type = $phone->getDbType();
-        $host = $phone->getDbdbHost();
-        $login = $phone->getDbUser();
-        $password = $phone->getDbPassword();
-        $dbName = $phone->getDbDatabase();
 
-
-        $db = new PDO("$type:dbname=$dbName;host=$host", $login,$password);  
-        $db->query("SET NAMES utf8mb4
-        ");
         $correctIMG = "<img height='25' width='25' src='modules/phoneManager/theme/correct.png' />";
         $incorrectIMG = "<img height='25' width='25' src='modules/phoneManager/theme/incorrect.png' />";
         Base_ThemeCommon::install_default_theme($this->get_type());
@@ -65,23 +64,23 @@ class phoneManager extends Module {
             $this->set_module_variable("recivePage",$val);
         }
         if(isset($_REQUEST['changeSendPageNext'])){
-            $val = $this->get_module_variable("recivePage");
+            $val = $this->get_module_variable("sendingPage");
             $val += 1;
             $this->set_module_variable("sendingPage",$val);
         }
         if(isset($_REQUEST['changeSendPagePrev'])){
-            $val = $this->get_module_variable("recivePage");
+            $val = $this->get_module_variable("sendingPage");
             $val -= 1;
             $this->set_module_variable("sendingPage",$val);
         }
 
         if(!$this->get_module_variable("recivePage")){
             $this->set_module_variable("recivePage",0);
-            $count = $db->query("SELECT COUNT(*) as count FROM inbox",PDO::FETCH_ASSOC);
-            if($count){
-                $count = $count->fetch();
-                $count = $count['count'];
-                $max = floor($count / $recordsPerPage);
+            $count = $this->getDataCurl("http://192.168.11.12:8000/api/recived/count");
+            $count = json_decode($count);  
+            $count = $count[0];
+            if($count->count){
+                $max = floor($count->count / $recordsPerPage);
                 $this->set_module_variable("reciveMaxPages",$max);
             }else{
                 $this->set_module_variable("reciveMaxPages",'0');
@@ -90,17 +89,18 @@ class phoneManager extends Module {
         }
         if(!$this->get_module_variable("sendingPage")){
             $this->set_module_variable("sendingPage",0);
-            $count = $db->query("SELECT COUNT(*) as count FROM sentitems",PDO::FETCH_ASSOC);
-            if($count){
-                $count = $count->fetch();
-                $count = $count['count'];
-                $max = floor($count / $recordsPerPage);
+            $count = $this->getDataCurl("http://192.168.11.12:8000/api/sended/count");
+            $count = json_decode($count);  
+            $count = $count[0];
+            if($count->count){
+                $max = floor($count->count / $recordsPerPage);
                 $this->set_module_variable("sendingMaxPages",$max);
             }else{
                 $this->set_module_variable("sendingMaxPages",'0');
             }
         }
-
+        $companyRbo = new RBO_RecordsetAccessor("company");
+        $contactRbo = new RBO_RecordsetAccessor("contact");
         if($this->get_module_variable("view") == "send"){
             $page = $this->get_module_variable("sendingPage");
             $max = $this->get_module_variable("sendingMaxPages");
@@ -132,33 +132,21 @@ class phoneManager extends Module {
                 $pageList[] = "<a $link >&raquo;</a>";
             }
             $theme->assign("pages",$pageList);
-            $page = $page * $recordsPerPage;
-            $records = $db->query("SELECT * FROM sentitems ORDER BY `SendingDateTime` DESC LIMIT 25 OFFSET $page",PDO::FETCH_ASSOC);
-            $recs = array();
+            
+            $records = $this->getDataCurl("http://192.168.11.12:8000/api/sended/page/".$page);
+            $records = json_decode($records);  
             foreach($records as $record){
-                $udh = substr($record['UDH'],-2,2);
-                if($udh == "" || $udh == "01"){
-                    if($record['UDH'] && $udh == "01"){
-                        $UDH = substr($record['UDH'],0,-4);
-                        $multipartRecords = $db->query("SELECT `TextDecoded` FROM sentitems WHERE `UDH` LIKE '$UDH%' ORDER BY `ID` ASC");
-                        foreach($multipartRecords as $multipart){
-                            $recs[$record['ID']]['TextDecoded'] .= $multipart[0];
-                        }
-                    }else{
-                        $recs[$record['ID']]['TextDecoded'] = $record['TextDecoded'];
+                $record->TextDecoded = nl2br($record->TextDecoded);
+                    if($record->CreatorID){
+                        $contact = $contactRbo->get_record((int) $record->CreatorID);
+                        $record->CreatorID = $contact->record_link($contact['first_name']." ".$contact['last_name']);
                     }
-                    $recs[$record['ID']]['TextDecoded'] =  nl2br($recs[$record['ID']]['TextDecoded']);
-                    $recs[$record['ID']]['SendingDateTime'] = $record['SendingDateTime'];
-                    $str = $record["DestinationNumber"];
-                    $tel = $record["SenderNumber"];
-                    $tel = str_replace("+48","",$tel);
-                    
-                    $companyRbo = new RBO_RecordsetAccessor("company");
-                    $contactRbo = new RBO_RecordsetAccessor("contact");
-                    $findInCompany = $companyRbo->get_records( array("(~phone" => "%$tel", "|~phonenext" => "%$tel") , array(),array());
+                    $str = $record->DestinationNumber;
+                    $str = str_replace("+48","",$str);
+                    $findInCompany = $companyRbo->get_records( array("(~phone" => "%$str", "|~phonenext" => "%$str") , array(),array());
                     $contactLink = Null;
                     if(count($findInCompany) == 0 ){
-                        $findInContacts = $contactRbo->get_records( array("(~work_phone" => "%$tel", "|~mobile_phone" => "%$tel") , array(),array());
+                        $findInContacts = $contactRbo->get_records( array("(~work_phone" => "%$str", "|~mobile_phone" => "%$str") , array(),array());
                         if(count($findInContacts) > 0 ){
                             foreach($findInContacts as $_contact){
                                 $contactLink = $_contact->record_link($_contact['first_name']." ".$_contact['last_name']);
@@ -173,16 +161,10 @@ class phoneManager extends Module {
                     $first = substr($str, 3, 3);
                     $second = substr($str, 6, 3);
                     $last = substr($str, 9, 3);
-                    $recs[$record['ID']]['DestinationNumber'] = $contactLink ."(".$country." ".$first." ".$second." ".$last.")";
-                    $recs[$record['ID']]['Status'] = __($record['Status']);
-                    $contactRbo = new RBO_RecordsetAccessor("contact");
-                    if($record['CreatorID'] != 0){
-                        $contact = $contactRbo->get_record($record['CreatorID']);
-                        $recs[$record['ID']]['CreatorID'] = $contact->record_link($contact['first_name']." ".$contact['last_name']);
-                    }
+                    $record->DestinationNumber = "$contactLink ($country $first $second $last)";
                 }
-                $theme->assign("records",$recs);
-            }
+            $theme->assign("records",$records);
+            //}
             $form = & $this->init_module('Libs/QuickForm');
             $crits = array();
             $fcallback = array('phoneManagerCommon','contact_or_company_format');
@@ -197,7 +179,7 @@ class phoneManager extends Module {
                 $number = $id[1];
                 $id = $id[0];
               //  $phone->sendSMS($values['message'], $number , 'yes', Acl::get_user());
-                $creator =  Acl::get_user();
+                $creator =   CRM_ContactsCommon::get_contact_by_user_id(Base_AclCommon::get_user ())['id'];
                 $message = $values['message'];
                 $ch = curl_init();
 
@@ -242,60 +224,40 @@ class phoneManager extends Module {
                 $pageList[] = "<a $link >&raquo;</a>";
             }
             $theme->assign("pages",$pageList);
-            $page = $page * $recordsPerPage;
-            $db->query("SET character_set_results='utf8mb4'");
-            $records = $db->query("SELECT * FROM inbox ORDER BY `ReceivingDateTime` DESC LIMIT 25 OFFSET $page",PDO::FETCH_ASSOC);
-            $recs = array();
+            $records = $this->getDataCurl("http://192.168.11.12:8000/api/recived/page/".$page);
+            $records =  json_decode($records);  
             foreach($records as $record){
-                $udh = substr($record['UDH'],-2,2);
-                if($udh == "" || $udh == "01"){
-                    if($record['UDH'] && $udh == "01"){
-                        $UDH = substr($record['UDH'],0,-4);
-                        $multipartRecords = $db->query("SELECT `TextDecoded` FROM inbox WHERE `UDH` LIKE '$UDH%' ORDER BY `ID` ASC");
-                        foreach($multipartRecords as $multipart){
-                            $recs[$record['ID']]['TextDecoded'] .= $multipart[0];
-                        }
-                    }else{
-                        $recs[$record['ID']]['TextDecoded'] = $record['TextDecoded'];
-                    }
-                    $reader = $record['readedBy'];
-                    $readers = explode('_',$reader);
-                    $readed = false;
-                    if(array_search(Acl::get_user(),$readers) != NULL){
-                        $readed  = true;
-                    }
-                    $recs[$record['ID']]['ID'] = $record['ID'];
-                    $recs[$record['ID']]['TextDecoded'] =  nl2br($recs[$record['ID']]['TextDecoded']);
-                    $recs[$record['ID']]['ReceivingDateTime'] = $record['ReceivingDateTime'];
-                    $str = $record["SenderNumber"];
-                    $str = str_replace("+48","",$str);
-                    
-                    $companyRbo = new RBO_RecordsetAccessor("company");
-                    $contactRbo = new RBO_RecordsetAccessor("contact");
-                    $findInCompany = $companyRbo->get_records( array("(~phone" => "%$str", "|~phonenext" => "%$str") , array(),array());
-                    $contactLink = Null;
-                    if(count($findInCompany) == 0 ){
-                        $findInContacts = $contactRbo->get_records( array("(~work_phone" => "%$str", "|~mobile_phone" => "%$str") , array(),array());
-                        if(count($findInContacts) > 0 ){
-                            foreach($findInContacts as $_contact){
-                                $contactLink = $_contact->record_link($_contact['first_name']." ".$_contact['last_name']);
-                            }
-                        }
-                    }else{
-                        foreach($findInCompany as $_company){
-                            $contactLink = $_company->record_link($_company['company_name']);
-                        }
-                    }
-
-                    $country = substr($str, 0, 3);
-                    $first = substr($str, 3, 3);
-                    $second = substr($str, 6, 3);
-                    $last = substr($str, 9, 3);
-                    $recs[$record['ID']]['SenderNumber'] = "$contactLink ($country $first $second $last)";
-                    $recs[$record['ID']]['readed'] = $readed;
+                $readers = $record->readed;
+                $readers = explode(',',$readers);
+                $readed = false;
+                if(array_search( CRM_ContactsCommon::get_contact_by_user_id(Base_AclCommon::get_user())['id'],$readers) != NULL){
+                    $readed  = true;
                 }
+                $record->readed = $readed;
+                $str = $record->SenderNumber;
+                $str = str_replace("+48","",$str);
+                $findInCompany = $companyRbo->get_records( array("(~phone" => "%$str", "|~phonenext" => "%$str") , array(),array());
+                $contactLink = Null;
+                if(count($findInCompany) == 0 ){
+                    $findInContacts = $contactRbo->get_records( array("(~work_phone" => "%$str", "|~mobile_phone" => "%$str") , array(),array());
+                    if(count($findInContacts) > 0 ){
+                        foreach($findInContacts as $_contact){
+                            $contactLink = $_contact->record_link($_contact['first_name']." ".$_contact['last_name']);
+                        }
+                    }
+                }else{
+                    foreach($findInCompany as $_company){
+                        $contactLink = $_company->record_link($_company['company_name']);
+                    }
+                }
+                $country = substr($str, 0, 3);
+                $first = substr($str, 3, 3);
+                $second = substr($str, 6, 3);
+                $last = substr($str, 9, 3);
+                $record->SenderNumber = "$contactLink ($country $first $second $last)";
             }
-        $theme->assign("records",$recs);
+
+            $theme->assign("records",$records);
         }
 
 

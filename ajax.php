@@ -2,34 +2,24 @@
 
 
 define('CID',false);
-#define('READ_ONLY_SESSION',true);
+define('READ_ONLY_SESSION',true);
 require_once('../../include.php');
 ModuleManager::load_modules();
 
 
-$userID = Acl::get_user();
+$userID = CRM_ContactsCommon::get_contact_by_user_id(Base_AclCommon::get_user ())['id'];
 $readedMessage = $_GET['id'];
 $resultsReturned = [];
 
-require 'phone.php';
-$phone = new Phone();
-$type = $phone->getDbType();
-$host = $phone->getDbdbHost();
-$login = $phone->getDbUser();
-$password = $phone->getDbPassword();
-$dbName = $phone->getDbDatabase();
+$ch = curl_init();
+curl_setopt($ch, CURLOPT_URL,"http://192.168.11.12:8000/api/read/sms/$readedMessage/$userID");
+curl_setopt($ch, CURLOPT_VERBOSE, 1);
+curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+curl_setopt($ch, CURLOPT_POSTFIELDS, "/$readedMessage/$userID");
+curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+$server_output = curl_exec($ch);
+curl_close ($ch);
 
-
-$db = new PDO("$type:dbname=$dbName;host=$host", "$login","$password");  
-
-$query = $db->query("SELECT \"readedBy\" FROM inbox WHERE \"ID\" = '$readedMessage' ");
-$record = $query->fetch(PDO::FETCH_ASSOC);
-$readers = $record['readedBy'];
-$readers .= "_".$userID;
-$resultsReturned['record'] = $record;
-$resultsReturned['query'] = $readers." WHERE $readedMessage";
-$exec = $db->prepare("UPDATE inbox SET \"readedBy\" = '$readers' WHERE \"ID\" = '$readedMessage' ");
-$exec->execute();
 $resultsReturned['status'] = "success";
 
 

@@ -16,6 +16,20 @@ class phoneManagerCommon extends ModuleCommon {
 		  else
         return array();
     }
+
+
+    public static function sendSms($number, $message, $creatorID = -1){
+      $ch = curl_init();
+      if($creatorID === -1){
+        $creatorID = CRM_ContactsCommon::get_contact_by_user_id(Base_AclCommon::get_user())['id'];
+      }
+      curl_setopt($ch, CURLOPT_URL,"http://192.168.11.12:8000/api/send/sms");
+      curl_setopt($ch, CURLOPT_POST, 1);
+      curl_setopt($ch, CURLOPT_POSTFIELDS, "number=$number&message=$message&creator=$creatorID");
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+      $server_output = curl_exec($ch);
+      curl_close ($ch);
+    }
   
 
     public static function autoselect_company_or_contact($str, $crits, $format_callback){

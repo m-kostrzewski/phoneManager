@@ -136,6 +136,8 @@ class phoneManager extends Module {
             $records = $this->getDataCurl("http://192.168.11.12:8000/api/sended/page/".$page);
             $records = json_decode($records);  
             foreach($records as $record){
+                $record->ShortText = substr($record->TextDecoded,0,90);
+                $record->ShortText = nl2br($record->ShortText);
                 $record->TextDecoded = nl2br($record->TextDecoded);
                     if($record->CreatorID){
                         $contact = $contactRbo->get_record((int) $record->CreatorID);
@@ -178,18 +180,8 @@ class phoneManager extends Module {
                 $id = explode("_",$values['contact']);
                 $number = $id[1];
                 $id = $id[0];
-              //  $phone->sendSMS($values['message'], $number , 'yes', Acl::get_user());
-                $creator =   CRM_ContactsCommon::get_contact_by_user_id(Base_AclCommon::get_user ())['id'];
                 $message = $values['message'];
-                $ch = curl_init();
-
-                // set url
-                curl_setopt($ch, CURLOPT_URL,"http://192.168.11.12:8000/api/send/sms");
-                curl_setopt($ch, CURLOPT_POST, 1);
-                curl_setopt($ch, CURLOPT_POSTFIELDS, "number=$number&message=$message&creator=$creator");
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-                $server_output = curl_exec($ch);
-                curl_close ($ch);
+                phoneManagerCommon::sendSms($number,$message);
             }
             $form->toHtml();
             $form->assign_theme('my_form', $theme);

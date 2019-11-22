@@ -39,7 +39,7 @@
                     <td align='center'  > {$record->CreatorID} </td>
                     <td align='center'> {$record->DestinationNumber} </td>
                     <td align='left' colspan='4'   style="padding-left:10px; padding-top:5px;padding-bottom:5px;">
-                        <span style='display:block;'> {$record->TextDecoded|truncate:95} </span> 
+                        <span style='display:block;'> {$record->ShortText} </span> 
                         <span style='display:none;'>  {$record->TextDecoded} </span>  
                     </td>
                 </tr>

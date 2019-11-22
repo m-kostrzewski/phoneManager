@@ -24,16 +24,13 @@ class phoneManagerCommon extends ModuleCommon {
         $creatorID = CRM_ContactsCommon::get_contact_by_user_id(Base_AclCommon::get_user())['id'];
       }
       $number = str_replace(";",",",$number);
-      $numbers=  explode(",",$number);
-      foreach($numbers as $number){
-        $number = str_replace(" ","",$number);
-        curl_setopt($ch, CURLOPT_URL,"http://192.168.11.12:8000/api/send/sms");
-        curl_setopt($ch, CURLOPT_POST, 1);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, "number=$number&message=$message&creator=$creatorID");
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-        $server_output = curl_exec($ch);
-        curl_close ($ch);
-      }
+      $number = str_replace(" ","",$number);
+      curl_setopt($ch, CURLOPT_URL,"http://192.168.11.12:8000/api/send/sms");
+      curl_setopt($ch, CURLOPT_POST, 1);
+      curl_setopt($ch, CURLOPT_POSTFIELDS, "number=$number&message=$message&creator=$creatorID");
+      curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+      $server_output = curl_exec($ch);
+      curl_close ($ch);
     }
   
 

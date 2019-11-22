@@ -174,7 +174,6 @@ class phoneManager extends Module {
             array(array('phoneManagerCommon','autoselect_company_or_contact'), array($crits, $fcallback)), $fcallback);
             $form->addElement("textarea","message", __("message"), array("cols" => "20", "rows" => "20" )) ;
             $form->addElement('submit','submit',__("submit"), array("class" => "phoneManagerButton"));
-
             if ($form->validate()) {
                 $values = $form->exportValues();
                 $id = explode("_",$values['contact']);

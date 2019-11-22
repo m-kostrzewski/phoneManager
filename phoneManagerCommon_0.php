@@ -27,7 +27,8 @@ class phoneManagerCommon extends ModuleCommon {
       $number = str_replace(" ","",$number);
       curl_setopt($ch, CURLOPT_URL,"http://192.168.11.12:8000/api/send/sms");
       curl_setopt($ch, CURLOPT_POST, 1);
-      curl_setopt($ch, CURLOPT_POSTFIELDS, "number=$number&message=$message&creator=$creatorID");
+      $data = array('number' => $number, 'message' => $message, 'creator' => $creatorID);
+      curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
       curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
       $server_output = curl_exec($ch);
       curl_close ($ch);

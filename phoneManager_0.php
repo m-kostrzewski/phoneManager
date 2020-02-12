@@ -4,8 +4,18 @@ defined("_VALID_ACCESS") || die('Direct access forbidden');
 
 class phoneManager extends Module {
 
-    public function settings(){
 
+    public function settings(){
+        $cfg = phoneManagerCommon::getConfig();
+        $form = &$this->init_module('Libs/QuickForm');
+        $form->addElement("text", 'url', 'Adres serwera', array('value'=> $cfg['url']));
+        $form->addElement("submit", 'submit', 'Zapisz');
+        $form->display();
+        if($form->validate()){
+            $values = $form->exportValues();
+            $cfg['url'] = $values['url'];
+            file_put_contents(dirname(__DIR__).'/../data/phoneManagerConfig.json', json_encode($cfg));
+        }
     }
 
     public function getDataCurl($url){
@@ -19,7 +29,8 @@ class phoneManager extends Module {
     }
 
     public function body(){
-
+        $conf = phoneManagerCommon::getConfig();
+        $url = $conf['url'];
         $change = "";
         if($_REQUEST['change']){
             $this->set_module_variable("view",$_REQUEST['change']);
@@ -76,7 +87,7 @@ class phoneManager extends Module {
 
         if(!$this->get_module_variable("recivePage")){
             $this->set_module_variable("recivePage",0);
-            $count = $this->getDataCurl("http://192.168.11.12:8000/api/recived/count");
+            $count = $this->getDataCurl($url."/api/recived/count");
             $count = json_decode($count);  
             $count = $count[0];
             if($count->count){
@@ -89,7 +100,7 @@ class phoneManager extends Module {
         }
         if(!$this->get_module_variable("sendingPage")){
             $this->set_module_variable("sendingPage",0);
-            $count = $this->getDataCurl("http://192.168.11.12:8000/api/sended/count");
+            $count = $this->getDataCurl($url."/api/sended/count");
             $count = json_decode($count);  
             $count = $count[0];
             if($count->count){
@@ -133,18 +144,18 @@ class phoneManager extends Module {
             }
             $theme->assign("pages",$pageList);
             
-            $records = $this->getDataCurl("http://192.168.11.12:8000/api/sended/page/".$page);
+            $records = $this->getDataCurl($url."/api/sended/page/".$page);
             $records = json_decode($records);  
             foreach($records as $record){
                 $record->ShortText = substr($record->TextDecoded,0,90);
                 $record->ShortText = nl2br($record->ShortText);
                 $record->TextDecoded = nl2br($record->TextDecoded);
-                    if($record->CreatorID){
-                        $contact = $contactRbo->get_record((int) $record->CreatorID);
-                        $record->CreatorID = $contact->record_link($contact['first_name']." ".$contact['last_name']);
-                    }
-                    $str = $record->DestinationNumber;
-                    $str = str_replace("+48","",$str);
+                if($record->CreatorID){
+                    $contact = $contactRbo->get_record((int) $record->CreatorID);
+                    $record->CreatorID = $contact ? $contact->record_link($contact['first_name']." ".$contact['last_name']) : 'NIEZNANY';
+                }
+                $str = $record->DestinationNumber;
+                $str = str_replace("+48","",$str);
                     $findInCompany = $companyRbo->get_records( array("(~phone" => "%$str", "|~phonenext" => "%$str") , array(),array());
                     $contactLink = Null;
                     if(count($findInCompany) == 0 ){
@@ -215,7 +226,7 @@ class phoneManager extends Module {
                 $pageList[] = "<a $link >&raquo;</a>";
             }
             $theme->assign("pages",$pageList);
-            $records = $this->getDataCurl("http://192.168.11.12:8000/api/recived/page/".$page);
+            $records = $this->getDataCurl($url."/api/recived/page/".$page);
             $records =  json_decode($records);  
             foreach($records as $record){
                 $readers = $record->readed;

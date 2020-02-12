@@ -8,7 +8,6 @@ class phoneManagerCommon extends ModuleCommon {
     }
 
     public static function menu() {
-
       if (Base_AclCommon::check_permission('Phone Manager') || Base_AclCommon::i_am_sa() == "1" || Base_AclCommon::i_am_admin() == "1" )
         return array(_M('Phone Manager') => array(
             '__icon__'=>'sms.png','__icon_small__'=>'sms.png'
@@ -17,15 +16,23 @@ class phoneManagerCommon extends ModuleCommon {
         return array();
     }
 
+    public static function getConfig(){
+      $fileCfg = file_get_contents(dirname(__DIR__)."/../data/phoneManagerConfig.json");
+      $cfg = json_decode($fileCfg, true);
+      return $cfg;
+
+  }
 
     public static function sendSms($number, $message, $creatorID = -1){
+      $conf = phoneManagerCommon::getConfig();
+      $url = $conf['url'];
       $ch = curl_init();
       if($creatorID === -1){
         $creatorID = CRM_ContactsCommon::get_contact_by_user_id(Base_AclCommon::get_user())['id'];
       }
       $number = str_replace(";",",",$number);
       $number = str_replace(" ","",$number);
-      curl_setopt($ch, CURLOPT_URL,"http://192.168.11.12:8000/api/send/sms");
+      curl_setopt($ch, CURLOPT_URL, $url."/api/send/sms");
       curl_setopt($ch, CURLOPT_POST, 1);
       $data = array('number' => $number, 'message' => $message, 'creator' => $creatorID);
       curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
